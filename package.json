@@ -1,0 +1,15 @@
+{
+  "name": "juego-clicks-nodejs",
+  "version": "1.0.0",
+  "description": "Un pequeño juego interactivo multijugador usando Node.js, Express y Socket.io.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Tu Nombre",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  }
+}

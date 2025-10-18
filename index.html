@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Clics en Tiempo Real</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilo personalizado para el cursor y transiciones suaves */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        #game-area {
+            cursor: crosshair;
+            touch-action: none;
+        }
+        #dot {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: #f56565; /* Rojo */
+            border-radius: 50%;
+            transition: top 0.2s ease-out, left 0.2s ease-out;
+            cursor: pointer;
+        }
+        #dot:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl mx-auto">
+        <header class="text-center mb-6">
+            <h1 class="text-4xl md:text-5xl font-bold text-teal-400">Juego de Clics en Tiempo Real</h1>
+            <p class="text-gray-400 mt-2">¡Compite para ver quién hace más clics en el círculo rojo!</p>
+        </header>
+
+        <main class="flex flex-col md:flex-row gap-6">
+            <!-- Área de Juego -->
+            <div class="flex-grow bg-gray-800 rounded-lg shadow-2xl relative w-full h-96 md:h-[500px]" id="game-area">
+                <div id="dot"></div>
+            </div>
+
+            <!-- Tabla de Puntuaciones -->
+            <div class="w-full md:w-64 bg-gray-800 p-4 rounded-lg shadow-2xl">
+                <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Puntuaciones</h2>
+                <ul id="scoreboard" class="space-y-2">
+                    <!-- Las puntuaciones se insertarán aquí dinámicamente -->
+                    <li class="text-gray-500">Esperando jugadores...</li>
+                </ul>
+            </div>
+        </main>
+        
+        <footer class="text-center mt-6 text-gray-500 text-sm">
+            <p>Tu ID: <span id="my-id" class="font-mono bg-gray-700 px-2 py-1 rounded"></span></p>
+        </footer>
+    </div>
+
+    <!-- Librería de Socket.io cliente -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // --- Conexión con el servidor ---
+        const socket = io();
+
+        // --- Elementos del DOM ---
+        const dot = document.getElementById('dot');
+        const scoreboard = document.getElementById('scoreboard');
+        const myIdElement = document.getElementById('my-id');
+
+        // --- Lógica del Cliente ---
+        
+        // 1. Mostrar el ID de este cliente
+        socket.on('connect', () => {
+            myIdElement.textContent = socket.id;
+        });
+
+        // 2. Escuchar actualizaciones del estado del juego desde el servidor
+        socket.on('updateState', (gameState) => {
+            // Actualizar la posición del punto
+            dot.style.left = `${gameState.dot.x}px`;
+            dot.style.top = `${gameState.dot.y}px`;
+
+            // Actualizar la tabla de puntuaciones
+            scoreboard.innerHTML = ''; // Limpiar la lista actual
+            
+            // Ordenar jugadores por puntaje (de mayor a menor)
+            const sortedPlayers = Object.entries(gameState.players).sort((a, b) => b[1].score - a[1].score);
+
+            if (sortedPlayers.length === 0) {
+                 scoreboard.innerHTML = '<li class="text-gray-500">Esperando jugadores...</li>';
+            } else {
+                sortedPlayers.forEach(([id, player]) => {
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center p-2 rounded';
+                    // Resaltar la puntuación del jugador actual
+                    if (id === socket.id) {
+                        li.classList.add('bg-teal-500/20', 'text-teal-300');
+                    } else {
+                        li.classList.add('bg-gray-700');
+                    }
+                    li.innerHTML = `
+                        <span class="font-mono text-xs truncate">${id.substring(0, 6)}...</span>
+                        <span class="font-bold text-lg">${player.score}</span>
+                    `;
+                    scoreboard.appendChild(li);
+                });
+            }
+        });
+
+        // 3. Enviar un evento al servidor cuando se hace clic en el punto
+        dot.addEventListener('click', () => {
+            socket.emit('dotClicked');
+        });
+    </script>
+</body>
+</html>
